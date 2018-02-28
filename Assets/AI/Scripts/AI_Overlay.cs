@@ -21,7 +21,7 @@ public class AI_Overlay : MonoBehaviour {
 	void Update () {
 		Vector3 V = transform.InverseTransformDirection(rb.velocity);
 		Vector3 Av = transform.InverseTransformDirection(rb.angularVelocity);
-		text.text = string.Format("V :{0:"+numberFormat+"} ({1:"+numberFormat+"}),({2:"+numberFormat+"})\n",V.magnitude,V.z,V.x)
-				  + string.Format("Av:{0:"+numberFormat+"} ({1:"+numberFormat+"}),({2:"+numberFormat+"})",Av.magnitude,Av.z,Av.x);
+		text.text = string.Format("V :{0:"+numberFormat+"}\n ({1:"+numberFormat+"}),({2:"+numberFormat+"})\n",V.magnitude,V.z,V.x)
+				  + string.Format("Av:{0:"+numberFormat+"}\n ({1:"+numberFormat+"}),({2:"+numberFormat+"})",Av.magnitude,Av.z,Av.x);
 	}
 }

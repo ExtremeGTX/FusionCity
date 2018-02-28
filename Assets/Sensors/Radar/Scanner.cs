@@ -124,7 +124,11 @@ public class Scanner : MonoBehaviour {
                 {
                     //Relative speed between host and target
                     //t.RelativeVelocity = hit.rigidbody.velocity - rb.velocity;
-                    t.RelativeVelocity = rb.velocity.magnitude - hit.rigidbody.velocity.magnitude;
+                    float Dir = (rb.velocity.x - hit.rigidbody.velocity.x) < 0.0f ? -1.0f : 1.0f;// GetDirection(rb.velocity, hit.rigidbody.velocity);
+                    Dir *= (rb.velocity.z - hit.rigidbody.velocity.z) < 0.0f ? -1.0f : 1.0f;
+                    t.RelativeVelocity = Mathf.Abs(rb.velocity.magnitude - hit.rigidbody.velocity.magnitude)*Dir;
+                    //t.RelativeVelocity = (rb.velocity - hit.rigidbody.velocity).normalized.magnitude;
+                    
                     //Relative Speed between host and target with projection on hit ray
                     tp.RelativeVelocity = hit.rigidbody.velocity - rb.velocity;
                     tp.RelativeVelocity = Vector3.Project(tp.RelativeVelocity,ray);
@@ -240,5 +244,9 @@ public class Scanner : MonoBehaviour {
             tCount++;
         }
         tTargets.text = ts;
+    }
+    void GetDirection(Vector3 a, Vector3 b)
+    {
+        Debug.Log(string.Format("DirX:{0} | DirZ:{1}",a.x-b.x,a.z-b.z));
     }
 }

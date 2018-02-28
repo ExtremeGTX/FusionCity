@@ -17,6 +17,10 @@ public class CarUserControl : MonoBehaviour
 
     private void FixedUpdate()
     {
+        if (Input.GetMouseButton(1))
+        {
+            return;
+        }
         // pass the input to the car!
         float h = Input.GetAxis("Horizontal");
         float v = Input.GetAxis("Vertical");

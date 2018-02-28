@@ -92,8 +92,8 @@ Material:
     - _Outline: 0.005
     - _Parallax: 0.01619403
     - _Reflection: 0
-    - _ShadowIntensity: 0.6
-    - _Shininess: 0.03020274
+    - _ShadowIntensity: 0.567
+    - _Shininess: 1
     - _Sparkle: 0.01
     - _SquashAmount: 1
     m_Colors:

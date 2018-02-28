@@ -30,9 +30,7 @@ public class MouseLook : MonoBehaviour
         rotX += mouseY * mouseSensitivity * 0.1f;
 
         rotX = Mathf.Clamp(rotX, -clampAngle, clampAngle);
-
-        Quaternion localRotation = Quaternion.Euler(rotX, rotY, 0.0f);
-        transform.rotation = localRotation;
+        transform.localEulerAngles = new Vector3(rotX, rotY, 0.0f);
 
     	Vector3 pos = Camera.main.transform.localPosition;
         if (Input.GetAxis("Mouse ScrollWheel") > 0) // forward

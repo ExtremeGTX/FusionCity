@@ -15,6 +15,7 @@ public class AICar_Drive : MonoBehaviour
     //List<Transform> path;
     List<Transform> path;
     [SerializeField] Transform pathGroup;
+    [SerializeField] bool ReversePath;
     float maxSteer = 35.0f;
     [SerializeField] WheelCollider wheelFL;
     [SerializeField] WheelCollider wheelFR;
@@ -94,7 +95,10 @@ public class AICar_Drive : MonoBehaviour
             }
         }
         //path = children.OrderBy(t => t.gameObject.name).Select(t => t.position).ToList();
-        path = children.OrderBy(t => t.gameObject.name).Select(t => t).ToList();
+
+            path = children.OrderBy(t => t.gameObject.name).Select(t => t).ToList();
+
+        
         //path.Add(path[0]);
 
     }
@@ -143,18 +147,36 @@ public class AICar_Drive : MonoBehaviour
 
     void GetSteer()
     {
+        
         Vector3 steerVector = transform.InverseTransformPoint(new Vector3(path[currentPathObj].position.x, transform.position.y, path[currentPathObj].position.z));
         float newSteer = maxSteer * (steerVector.x / steerVector.magnitude);
+
+        // var rotation = Quaternion.LookRotation(path[currentPathObj].position - transform.position);
+        // newSteer = Quaternion.Slerp(transform.rotation, rotation, Time.deltaTime * 6.0f).y;
+        
+
         wheelFL.steerAngle = newSteer;
         wheelFR.steerAngle = newSteer;
         distToPoint = steerVector.magnitude;
 
         if (steerVector.magnitude <= distFromPath)
         {
-            currentPathObj++;
-            if (currentPathObj >= path.Count)
+            if (ReversePath)
+            {
+                currentPathObj--;
+                if (currentPathObj < 0)
+                currentPathObj = path.Count-1;
+
+            }
+            else
+            {
+                currentPathObj++;
+                if (currentPathObj >= path.Count)
                 currentPathObj = 0;
 
+            }
+            
+            
             waypointName = path[currentPathObj].name;
         }
 

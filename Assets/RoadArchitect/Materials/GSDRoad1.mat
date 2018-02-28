@@ -33,7 +33,7 @@ Material:
     m_Floats:
     - _OffsetY: 114.62686
     - _ShadowIntensity: 0.6
-    - _Shininess: 0.4232378
+    - _Shininess: 1
     m_Colors:
     - _Color: {r: 0.7238806, g: 0.7238806, b: 0.7238806, a: 1}
     - _Emission: {r: 0, g: 0, b: 0, a: 0}
