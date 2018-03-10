@@ -4,106 +4,108 @@ using System.Collections;
 using System.Text;
 using System.Collections.Generic;
 using System.Threading;
+using System;
 
 //[RequireComponent(typeof(UdpSender))]
-public class Scanner : MonoBehaviour {
+public class Scanner : MonoBehaviour,ISensor {
     [SerializeField] public string SensorID = "RL";
 	public float range = 80;
-	public float angle = 180;
+	public float FieldOfView = 180;
 	public float angularResolution = 1;
-    public float frequence = 75;
+    public float ScanningFrequency = 75;
 	public bool hasNoise = true;
 	public float systemError = 0.04f;
-	
-	public Color color = Color.blue;
-	public static bool showDebugRay = true;
 
     public Text GUIAlert;
-	private int numLines;
+
+	private int NoOfBeams;
+
 	private RaycastHit hit;
 
-    private float distance;
     private float error;
-    private StringBuilder builder;
-	
-    private List<GameObject> LineRendererGOList = new List<GameObject>();
 
-    
+    public Action<int,Vector3,Vector3,bool> OnSensorBeamUpdate { get; set; }
+    public Action OnSensorInitDone { get; set; }
+    public Action OnSensorUpdate { get; set ; }
 
     public Dictionary<int, Target> TargetList = new Dictionary<int, Target>();
 
-    public int TotalDetectedTargets=0;
-    public float TargetMinAngle=0;
-    public float TargetMaxAngle=0;
-    public float TargetCorrectedMinAngle=0;
-    public float TargetCorrectedMaxAngle=0;
+    private List<BeamInfo> BeamsInfo = new List<BeamInfo>();
+
+    public int dbgTotalDetectedTargets=0;
+    public float dbgTargetMinAngle=0;
+    public float dbgTargetMaxAngle=0;
+    public float dbgTargetCorrectedMinAngle=0;
+    public float dbgTargetCorrectedMaxAngle=0;
     Rigidbody rb;
-    void InitLRList(int count)
-    {
-       while(count > LineRendererGOList.Count)
-       {
-            GameObject g = new GameObject();
-            
-            g.transform.parent = this.gameObject.transform;
-            LineRenderer lr = g.AddComponent<LineRenderer>();
-            lr.startWidth=0.01f;
-            lr.endWidth=0.01f;
-            
-            lr.material = new Material(Shader.Find("Unlit/Color"));
-            lr.material.color=Color.green;
-            lr.startColor=Color.green; //Color need a basic material
-            lr.endColor=Color.green;
-            lr.receiveShadows = false;
-            lr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-            LineRendererGOList.Add(g);
-        }
-
-        if (LineRendererGOList.Count > count && LineRendererGOList.Count > 0)
-        {
-            GameObject g = LineRendererGOList[LineRendererGOList.Count-1];
-            Destroy(g);
-            LineRendererGOList.RemoveAt(LineRendererGOList.Count-1);
-        }
-
-    }
+    
 	void Start() {
         rb = transform.parent.GetComponentInParent<Rigidbody>();
-		numLines = (int)(angle / angularResolution) + 1;
-        InitLRList(numLines);
+		NoOfBeams = (int)(FieldOfView / angularResolution) + 1;
+        
+        if (OnSensorInitDone != null)
+            OnSensorInitDone();
 	}
 	
-	void FixedUpdate() {
-		range = Mathf.Clamp(range, 0.01f, range);
-		angle = Mathf.Clamp(angle, 0.0f, angle);
-		angularResolution = Mathf.Clamp(angularResolution, 0.01f, angle * 0.5f);
-        numLines = (int)(angle / angularResolution) + 1;
-        if (showDebugRay==false)
-        {
-            InitLRList(0);
-        }
-        else if (LineRendererGOList.Count != numLines)
-        {
-            InitLRList(numLines);
-        }
+	private void UnusedFixedUpdate() {
+		// range = Mathf.Clamp(range, 0.01f, range);
+		// FieldOfView = Mathf.Clamp(FieldOfView, 0.0f, FieldOfView);
+		// angularResolution = Mathf.Clamp(angularResolution, 0.01f, FieldOfView * 0.5f);
+        NoOfBeams = (int)(FieldOfView / angularResolution) + 1;
+        
+         if (OnSensorUpdate != null)
+            OnSensorUpdate();
     }
 
-    void Update() 
+    void LateUpdate()
     {
+        if (BeamsInfo.Count==0)
+            return;
+
+        for (int index=0;index<NoOfBeams;index++){
+            if (OnSensorBeamUpdate != null)
+                OnSensorBeamUpdate(index,
+                                    transform.position,
+                                    transform.position+BeamsInfo[index].Ray, 
+                                    BeamsInfo[index].Alert
+                                   );
+        }    
+
+    }
+    
+    int mcc_start=0;
+    void FixedUpdate() 
+    {
+        if(mcc_start<2)
+        {
+            mcc_start++;
+            return;
+        }
+        mcc_start=0;
+        BeamsInfo.Clear();
+        float distance=0;
+        NoOfBeams = (int)(FieldOfView / angularResolution) + 1;
+        
+         if (OnSensorUpdate != null)
+            OnSensorUpdate();
+
         bool Alert=false;
-        //builder = new StringBuilder();
         TargetList.Clear();
-        for (int index = 0; index < numLines; index++)
+        for (int index = 0; index < NoOfBeams; index++)
         {
             error = (hasNoise ? Noise() : 0.0f);
             distance = range + error;
 
-            Vector3 ray = transform.rotation * Quaternion.AngleAxis(angle * 0.5f + (-1 * index * angularResolution), Vector3.up) * Vector3.forward;
+            Vector3 ray = transform.rotation * Quaternion.AngleAxis(FieldOfView * 0.5f + (-1 * index * angularResolution), Vector3.up) * Vector3.forward;
             if (Physics.Raycast(transform.position, ray, out hit, range))
                 distance = hit.distance + error;
             
-
             if (distance < range)
             {
+                /* Future Implementation, Neglect anything not a Car */
+                /*if (!hit.transform.gameObject.name.Contains("Car"))
+                    continue;*/
+
                 Alert = true;
                 int goid = hit.transform.gameObject.GetInstanceID();
                 Target t;
@@ -115,7 +117,7 @@ public class Scanner : MonoBehaviour {
 
                 t = TargetList[goid];
                 Target.PointData tp = new Target.PointData();
-                tp.angle = angle * 0.5f + (-1 * index * angularResolution);
+                tp.angle = FieldOfView * 0.5f + (-1 * index * angularResolution);
                 tp.distance = distance;
                 tp.point = hit.point;
                 t.name = hit.transform.name;
@@ -140,35 +142,13 @@ public class Scanner : MonoBehaviour {
                 t.yawRate = hit.rigidbody ? hit.rigidbody.angularVelocity.magnitude:0.0f;
                 t.PointsData.Add(tp);
             }
-
-            if (showDebugRay)
-            {
-                LineRenderer lr =  LineRendererGOList[index].GetComponent<LineRenderer>();
-                lr.name = "LR_"+(angle * 0.5f + (-1 * index * angularResolution)).ToString();
-                lr.SetPosition( 0, transform.position );
-                lr.SetPosition( 1,transform.position+(ray * distance));
-                if (distance < range){
-                    lr.startColor=Color.red; //Color need a basic material
-                    lr.endColor=Color.red;
-                    lr.material.color=Color.red;
-                }
-                else
-                {
-                    lr.startColor=Color.green; //Color need a basic material
-                    lr.endColor=Color.green;
-                    lr.material.color=Color.green;
-                }
-            //Debug.DrawLine(transform.position, transform.position+(ray * distance), Color.green,0.0f,true);
-            //Debug.DrawRay(transform.position, ray * distance, Color.yellow);
-            //Debug.DrawRay(transform.position, ray * distance, color);
-                
-            }
-            //builder.AppendFormat("{0:0.000} ", distance);
-         
+            BeamsInfo.Add(new BeamInfo((ray*distance),(distance<range)));
+            
+        
         }
-        //SendMessage("SetData", builder.ToString());
-        TotalDetectedTargets = TargetList.Count;
-        if (TotalDetectedTargets>0)
+#if _dbg_
+        dbgTotalDetectedTargets = TargetList.Count;
+        if (dbgTotalDetectedTargets>0)
         {
             foreach (KeyValuePair<int,Target> item in TargetList)
             {
@@ -178,21 +158,21 @@ public class Scanner : MonoBehaviour {
 
                 Transform p = gameObject.transform.parent;
                 
-                TargetCorrectedMinAngle = TargetMinAngle + p.localEulerAngles.y;
-                TargetCorrectedMaxAngle = TargetMaxAngle + p.localEulerAngles.y;
+                dbgTargetCorrectedMinAngle = dbgTargetMinAngle + p.localEulerAngles.y;
+                dbgTargetCorrectedMaxAngle = dbgTargetMaxAngle + p.localEulerAngles.y;
             }
         }
+#endif
         if (Alert)
             GUIAlert.color = Color.red;
         else
             GUIAlert.color = Color.black;
 
-        //if (SensorID=="RR")
             SendData();    
 	}
 
 	float Noise() {
-		return Random.Range(-systemError, systemError);
+		return UnityEngine.Random.Range(-systemError, systemError);
 	}
 
     public void setRange(float val)
@@ -224,7 +204,7 @@ public class Scanner : MonoBehaviour {
                    /* Sensor Data */
                    + delimter + transform.parent.transform.localEulerAngles.y.ToString("000.0")
                    + delimter + this.range.ToString("##0.00")
-                   + delimter + this.angle.ToString("##0.00")
+                   + delimter + this.FieldOfView.ToString("##0.00")
                   
                    ;
         
@@ -248,5 +228,15 @@ public class Scanner : MonoBehaviour {
     void GetDirection(Vector3 a, Vector3 b)
     {
         Debug.Log(string.Format("DirX:{0} | DirZ:{1}",a.x-b.x,a.z-b.z));
+    }
+
+    public int getNoOfBeams()
+    {
+        return NoOfBeams;
+    }
+
+    public float getRange()
+    {
+        return range;
     }
 }

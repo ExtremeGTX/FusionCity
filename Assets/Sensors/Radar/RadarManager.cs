@@ -99,7 +99,7 @@ public class RadarManager : MonoBehaviour {
 	{
 		Scanner s = RadarObjs[0].GetComponent<Scanner>();
 		Scanner s1 = RadarObjs[1].GetComponent<Scanner>();
-		s.angle = s1.angle = System.Convert.ToInt32(val);
+		s.FieldOfView = s1.FieldOfView = System.Convert.ToInt32(val);
 
 		UpdateFrontSensor_Stats();
 	}
@@ -116,7 +116,7 @@ public class RadarManager : MonoBehaviour {
 	{
 		Scanner s2 = RadarObjs[2].GetComponent<Scanner>();
 		Scanner s3 = RadarObjs[3].GetComponent<Scanner>();
-		s2.angle = s3.angle = System.Convert.ToInt32(val);
+		s2.FieldOfView = s3.FieldOfView = System.Convert.ToInt32(val);
 		UpdateRearSensor_Stats();
 	}
 
@@ -135,17 +135,24 @@ public class RadarManager : MonoBehaviour {
 	public void UpdateFrontSensor_Stats()
 	{
 		Scanner s = RadarObjs[0].GetComponent<Scanner>();
-		FrontSensorStats.text = string.Format("Range: {0}\nFoV: {1}\nAngle: {2}",s.range,s.angle,RadarObjs[1].transform.parent.transform.localEulerAngles.y);
+		FrontSensorStats.text = string.Format("Range: {0}\nFoV: {1}\nAngle: {2}",s.range,s.FieldOfView,RadarObjs[1].transform.parent.transform.localEulerAngles.y);
 	}
 	public void UpdateRearSensor_Stats()
 	{
 		Scanner s = RadarObjs[2].GetComponent<Scanner>();
-		RearSensorStats.text = string.Format("Range: {0}\nFoV: {1}\nAngle: {2}",s.range,s.angle,RadarObjs[2].transform.parent.transform.localEulerAngles.y);
+		RearSensorStats.text = string.Format("Range: {0}\nFoV: {1}\nAngle: {2}",s.range,s.FieldOfView,RadarObjs[2].transform.parent.transform.localEulerAngles.y);
 	}
 
 	public void DisplayBeams(bool enable)
 	{
-		Scanner.showDebugRay = enable;
+		LRVisualizer[] lrvs = FindObjectsOfType<LRVisualizer>() as LRVisualizer[];
+		if (lrvs.Length <= 0)
+			Debug.Log("No Beams");
+		foreach (LRVisualizer lr in lrvs)
+		{
+			lr.EnableBeams(enable);
+		}
+//		Scanner.showDebugRay = enable;
 	}
 
 	static List<Queue> udpQueue = new List<Queue>();
